@@ -1,0 +1,649 @@
+
+<!--
+💬 AI Web Dev Chatbot
+ohhh ohh ohhh ohhh ohhh !! hay  se muestran los mensajes:
+-->
+
+  <!DOCTYPE html>
+<html>
+<head>
+  <title>Oz-Ia</title>
+  <style>
+    #chat-log {
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 300px;
+      overflow-y: scroll;
+    }
+    #message-input {
+      width: 80%;
+      padding: 5px;
+    }
+    #send-button {
+      padding: 5px 10px;
+    }
+  </style>
+  <style>
+    body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #1e1e1e;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.chat-container {
+  width: 100%;
+  max-width: 700px;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  color: #00ffd0;
+  margin-bottom: 10px;
+}
+
+.chat-box {
+  background: #2e2e2e;
+  padding: 20px;
+  border-radius: 10px;
+  height: 500px;
+  overflow-y: auto;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.message {
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.user {
+  text-align: right;
+  color: #00ffd0;
+}
+
+.bot {
+  text-align: left;
+  color: #eee;
+}
+
+pre {
+  background: #111;
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #0f0;
+  margin-top: 10px;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+textarea {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: #2e2e2e;
+  color: #fff;
+  font-size: 16px;
+  resize: none;
+  height: 60px;
+}
+
+button {
+  background: #00ffd0;
+  border: none;
+  border-radius: 8px;
+  padding: 0 20px;
+  font-size: 24px;
+  color: #000;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #00c9a7;
+}
+
+
+
+
+  </style>
+</head>
+<body>
+
+
+
+
+
+<head>
+  <title>Historial del Chat</title>
+  <style>
+    #history-log {
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 300px;
+      overflow-y: scroll;
+    }
+  </style>
+</head>
+
+  <body>
+  <div class="chat-container">
+<h2>Ia personal de oz.. ✨
+</h2>
+
+  <p> 💬 --B-Ī--Ü-S----by-Os  
+    <br>Bio. - Intelligence. - U.- Soul. -   </p>
+    
+    <div id="chatBox" class="chat-box"></div>
+    
+    <div class="input-group">
+      <textarea id="userInput" placeholder="Ask anything"></textarea>
+      <button onclick="sendMessage()">➤</button>
+      <button onclick="startVoice()">🎙️</button>
+    </div>
+  </div>
+  
+  <div>
+          
+
+    <div id="chat-log"></div>
+  <input type="text" id="message-input">
+  <button id="send-button">Enviar</button>
+
+  <button id="open-history">Abrir Historial</button>
+  </div>
+  
+  
+  <!-- JSZip & FileSaver for optional zip download later -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  
+  <script>
+    const API_KEY = "AIzaSyDSIy5m7mTXlMMR_OOdCu2Af_EwoCd124w"; // Replace with your Gemini API Key
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+
+const chatBox = document.getElementById("chatBox");
+
+function sendMessage() {
+  const input = document.getElementById("userInput");
+  const userText = input.value.trim();
+  if (!userText) return;
+  
+  addMessage("user", userText);
+  input.value = "";
+  getBotResponse(userText);
+}
+
+function addMessage(sender, text) {
+  const msg = document.createElement("div");
+  msg.className = `message ${sender}`;
+  
+  if (sender === "bot" && text.includes("```")) {
+    const parsed = parseCode(text);
+    msg.innerHTML = parsed;
+  } else {
+    msg.innerText = text;
+  }
+  
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function parseCode(text) {
+  return text.replace(/```(\w+)?([\s\S]*?)```/g, (_, lang, code) => {
+    return `<pre><code>${escapeHtml(code.trim())}</code></pre>`;
+  });
+}
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+async function getBotResponse(prompt) {
+  const thinking = document.createElement("div");
+  thinking.className = "message bot";
+  thinking.innerText = "Typing...";
+  chatBox.appendChild(thinking);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    
+    const data = await res.json();
+    const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "❌ No response.";
+    thinking.remove();
+    addMessage("bot", aiText);
+  } catch (err) {
+    thinking.remove();
+    addMessage("bot", "⚠️ Error getting response.");
+  }
+}
+
+// Voice input
+function startVoice() {
+  const recognition = new(window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = "en-US";
+  recognition.start();
+  recognition.onresult = (event) => {
+    document.getElementById("userInput").value = event.results[0][0].transcript;
+  };
+  recognition.onerror = (event) => {
+    alert("Voice input error: " + event.error);
+  };
+}
+  </script>
+  
+  
+<body>
+  <h1>Historial del Chat</h1>
+  <div id="history-log"></div>
+
+  <script>
+    // history.js (script para la ventana secundaria)
+
+    const historyLog = document.getElementById('history-log');
+
+    function loadHistory() {
+      const savedHistory = localStorage.getItem('chatHistory');
+      if (savedHistory) {
+        historyLog.innerHTML = savedHistory;
+        historyLog.scrollTop = historyLog.scrollHeight; // Scroll al final
+      } else {
+        historyLog.textContent = 'No hay historial guardado.';
+      }
+    }
+
+    // Cargar el historial al cargar la página
+    loadHistory();
+
+
+    // Opcional:  Si quieres que se actualice si la ventana principal cambia (usando Broadcast Channel)
+    
+    const channel = new BroadcastChannel('chat-channel');
+
+    channel.addEventListener('message', event => {
+      if (event.data === 'chat-updated') {
+        loadHistory();
+      }
+    });
+   /////////OPCION ESTA PARTE DE ARRIBA 
+
+
+
+  </script>
+
+  
+
+  <script>
+    // script.js (modificado)
+
+    const chatLog = document.getElementById('chat-log');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const openHistoryButton = document.getElementById('open-history');
+
+    // Función para guardar la conversación en localStorage
+    function saveChat() {
+      localStorage.setItem('chatHistory', chatLog.innerHTML);
+    }
+
+    // Función para cargar la conversación desde localStorage
+    function loadChat() {
+      const savedChat = localStorage.getItem('chatHistory');
+      if (savedChat) {
+        chatLog.innerHTML = savedChat;
+      }
+    }
+
+    // Evento al hacer click en el botón "Enviar"
+    sendButton.addEventListener('click', () => {
+      const message = messageInput.value.trim();
+      if (message !== '') {
+        const newMessage = document.createElement('div');
+        newMessage.textContent = message;
+        chatLog.appendChild(newMessage);
+        messageInput.value = ''; // Limpiar el input
+        chatLog.scrollTop = chatLog.scrollHeight; // Scroll al final
+
+        // Guardar la conversación después de enviar un mensaje
+        saveChat();
+      }
+    });
+
+    // Evento al presionar Enter en el input
+    messageInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        sendButton.click(); // Simular un click en el botón "Enviar"
+      }
+    });
+
+
+    // Cargar la conversación al cargar la página
+    loadChat();
+
+
+    //Abrir la ventana del historial
+    openHistoryButton.addEventListener('click', () => {
+        window.open('history.html', '_blank', 'width=400,height=400');
+    });
+
+
+    // Guardar la conversación al cerrar la ventana (opcional, pero útil)
+    window.addEventListener('beforeunload', () => {
+      saveChat();
+    });
+
+
+  </script>
+
+  <!--
+</body>
+</html>
+
+
+<!--
+**Archivo `history.html` (para la ventana secundaria)** Este archivo es muy simple. Solo se encarga de mostrar el contenido que se guardó en `localStorage`.
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Historial del Chat</title>
+  <style>
+    #history-log {
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 300px;
+      overflow-y: scroll;
+    }
+  </style>
+</head>
+<body>
+  <h1>Historial del Chat</h1>
+  <div id="history-log"></div>
+-->
+  <script>
+    // history.js (script para la ventana secundaria)
+
+    const historyLog = document.getElementById('history-log');
+
+    function loadHistory() {
+      const savedHistory = localStorage.getItem('chatHistory');
+      if (savedHistory) {
+        historyLog.innerHTML = savedHistory;
+        historyLog.scrollTop = historyLog.scrollHeight; // Scroll al final
+      } else {
+        historyLog.textContent = 'No hay historial guardado.';
+      }
+    }
+
+    // Cargar el historial al cargar la página
+    loadHistory();
+
+
+    // Opcional:  Si quieres que se actualice si la ventana principal cambia (usando Broadcast Channel)
+    
+    const channel = new BroadcastChannel('chat-channel');
+
+    channel.addEventListener('message', event => {
+      if (event.data === 'chat-updated') {
+        loadHistory();
+      }
+    });
+   /////////OPCION ESTA PARTE DE ARRIBA 
+
+
+
+  </script>
+
+
+  <!--
+</body>
+</html>
+<!--/*
+**Explicación Detallada** * **`saveChat()`:** * Toma el contenido HTML del elemento `#chat-log`. **Importante:** Esto guarda *todo* el HTML, incluyendo las etiquetas `
+`. * Usa `localStorage.setItem('chatHistory', chatLog.innerHTML)` para guardar la cadena de texto en `localStorage` bajo la clave 'chatHistory'. * **`loadChat()`:** * Usa `localStorage.getItem('chatHistory')` para intentar recuperar el valor guardado con la clave 'chatHistory'. * Si encuentra algo (`savedChat` no es `null`), usa `chatLog.innerHTML = savedChat` para poner el contenido HTML recuperado dentro del elemento `#chat-log`. Esto *reemplaza* todo el contenido anterior. * Si no hay nada guardado, `#chat-log` permanece vacío. * **`window.addEventListener('beforeunload', ...)`:** Este evento se dispara justo antes de que la página se cierre o se recargue. Es un buen lugar para guardar la conversación, asegurándote de que no se pierda el último estado. * **`history.html`:** Este archivo es muy similar. Tiene una función `loadHistory()` que hace lo mismo que `loadChat()`, pero en el elemento `#history-log`. * **`BroadcastChannel` (Opcional):** El código comentado con `BroadcastChannel` es para la sincronización en tiempo real. * En la ventana principal, después de guardar la conversación, enviarías un mensaje al canal: `channel.postMessage('chat-updated');` * En la ventana secundaria, el listener del canal (`channel.addEventListener('message', ...)` ) detectaría ese mensaje y volvería a cargar el historial. * **Importante:** `BroadcastChannel` solo funciona si las ventanas comparten el mismo origen (protocolo, dominio y puerto). **Cómo Usar el Código** 1. Crea dos archivos: `index.html` (o el nombre que uses para tu página principal) y `history.html`. 2. Copia el código HTML/JavaScript de arriba en los archivos correspondientes. 3. Abre `index.html` en tu navegador. 4. Escribe mensajes en el chat y haz clic en "Enviar". 5. Abre el historial dando clic en el boton "Abrir Historial". Verás que los mensajes se guardan y se cargan en la ventana secundaria. 6. Cierra y vuelve a abrir `index.html`. Verás que la conversación se ha guardado. **Puntos Importantes y Mejoras** * **Seguridad:** `localStorage` no es seguro para información sensible. No guardes contraseñas ni datos personales importantes. Solo es para datos persistentes pero no críticos. * **Tamaño de `localStorage`:** `localStorage` tiene un límite de tamaño (generalmente 5MB por dominio). Si tu conversación es muy larga, podrías exceder este límite. Considera usar un sistema de paginación o guardar solo los mensajes más recientes. * **Formato de los Mensajes:** Actualmente, guardamos todo el HTML. Podrías querer guardar solo el texto de los mensajes y reconstruir el HTML al cargarlos. Esto te da más control sobre el formato y puede ser más eficiente. * **Estructura de Datos:** En lugar de guardar el HTML, podrías guardar un array de objetos JavaScript, donde cada objeto representa un mensaje (con propiedades como `autor`, `texto`, `timestamp`). Luego, al cargar, podrías iterar sobre el array y crear los elementos HTML dinámicamente. * **Gestión de Errores:** Añade bloques `try...catch` para manejar posibles errores al acceder a `localStorage` (por ejemplo, si está deshabilitado). * **Librerías:** Considera usar una librería como `localForage` que abstrae las diferencias entre `localStorage`, `IndexedDB` y WebSQL, y te da más flexibilidad. **Adaptación a tu `script.js`** El código que te he dado es un ejemplo básico. Para adaptarlo a tu `script.js` específico, necesitas: 1. **Identificar:** Dónde se muestran los mensajes en tu página (el elemento HTML). 2. **Modificar:** Las funciones `saveChat()` y `loadChat()` para que accedan al elemento correcto. 3. **Integrar:** Las llamadas a `saveChat()` y `loadChat()` en los lugares apropiados (al enviar un mensaje, al cargar la página, al cerrar la ventana). Espero que esto te ayude. Si tienes alguna pregunta más específica sobre tu `script.js`, por favor, compártelo y te daré una solución más precisa.
+Ask anything
+➤➤
+�➤
+�➤
+�➤
+�➤
+�
+🎙️
+>
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Web Dev Chatbot</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #1e1e1e;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.chat-container {
+  width: 100%;
+  max-width: 700px;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  color: #00ffd0;
+  margin-bottom: 10px;
+}
+
+.chat-box {
+  background: #2e2e2e;
+  padding: 20px;
+  border-radius: 10px;
+  height: 500px;
+  overflow-y: auto;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.message {
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.user {
+  text-align: right;
+  color: #00ffd0;
+}
+
+.bot {
+  text-align: left;
+  color: #eee;
+}
+
+pre {
+  background: #111;
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #0f0;
+  margin-top: 10px;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+textarea {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: #2e2e2e;
+  color: #fff;
+  font-size: 16px;
+  resize: none;
+  height: 60px;
+}
+
+button {
+  background: #00ffd0;
+  border: none;
+  border-radius: 8px;
+  padding: 0 20px;
+  font-size: 24px;
+  color: #000;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #00c9a7;
+}
+  </style>
+
+  
+  <!---
+</head>
+
+<body>
+  -->
+  <div class="chat-container">
+    <h1>💬 AI Web Dev Chatbot</h1>
+    <div id="chatBox" class="chat-box"></div>
+    
+    <div class="input-group">
+      <textarea id="userInput" placeholder="Ask anything"></textarea>
+      <button onclick="sendMessage()">➤</button>
+      <button onclick="startVoice()">🎙️</button>
+    </div>
+  </div>
+  
+  <!-- JSZip & FileSaver for optional zip download later -->
+<!--
+
+
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  
+  <script>
+    const API_KEY = "AIzaSyDSIy5m7mTXlMMR_OOdCu2Af_EwoCd124w"; // Replace with your Gemini API Key
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+
+const chatBox = document.getElementById("chatBox");
+
+function sendMessage() {
+  const input = document.getElementById("userInput");
+  const userText = input.value.trim();
+  if (!userText) return;
+  
+  addMessage("user", userText);
+  input.value = "";
+  getBotResponse(userText);
+}
+
+function addMessage(sender, text) {
+  const msg = document.createElement("div");
+  msg.className = `message ${sender}`;
+  
+  if (sender === "bot" && text.includes("```")) {
+    const parsed = parseCode(text);
+    msg.innerHTML = parsed;
+  } else {
+    msg.innerText = text;
+  }
+  
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function parseCode(text) {
+  return text.replace(/```(\w+)?([\s\S]*?)```/g, (_, lang, code) => {
+    return `<pre><code>${escapeHtml(code.trim())}</code></pre>`;
+  });
+}
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+async function getBotResponse(prompt) {
+  const thinking = document.createElement("div");
+  thinking.className = "message bot";
+  thinking.innerText = "Typing...";
+  chatBox.appendChild(thinking);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    
+    const data = await res.json();
+    const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "❌ No response.";
+    thinking.remove();
+    addMessage("bot", aiText);
+  } catch (err) {
+    thinking.remove();
+    addMessage("bot", "⚠️ Error getting response.");
+  }
+}
+
+// Voice input
+function startVoice() {
+  const recognition = new(window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = "en-US";
+  recognition.start();
+  recognition.onresult = (event) => {
+    document.getElementById("userInput").value = event.results[0][0].transcript;
+  };
+  recognition.onerror = (event) => {
+    alert("Voice input error: " + event.error);
+  };
+}
+  </script>
+  
+  
+  
+</body>
+
+</html>
